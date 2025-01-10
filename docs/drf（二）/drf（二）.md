@@ -207,6 +207,10 @@ obj.get()  # 就是实现的是我们的间接性的调用我们的 Obj01 中的
 
 > * 在我们实现请求的时候也是可以通过可选参数或者说其他参数来实现获取参数的呐
 
+* **request.query_params.get(key)** 实现的就是从Url 的查询字符串中获取数据
+* **request.META.get(key)** 实现的就是从请求头中实现查询数据
+* **request.data.get(key)** 实现的就是从请求体中查询数据
+
 
 
 ## drf 认证组件
@@ -237,6 +241,9 @@ obj.get()  # 就是实现的是我们的间接性的调用我们的 Obj01 中的
 
 * 源码上的处理效果的话就是本质上实现了处理我们的每个定义的认证器的对象的
 * 源码的核心对象就是： request类 和 APIView类
+* 最后实现运行的是我们的每个认证类中的 **authenticate** 方法
+  * 在拥有多个认证类的时候，我们的实现效果就是：=只要最终返回的是 None ，那么就进入下一个认证类进行校验
+  * 直到返回真真的结果为止
 
 
 
@@ -355,3 +362,139 @@ class DefaultView(APIView):
 > * 如果我们在源码中看到了返回的错误异常是： 
 >   * **`raise NotImplementedError(".authenticate() must be overridden.")`**
 >   * 那就说明了子类被父类潜规则了，在子类进行继承使用父类的时候，必须将对应方法进行重写
+
+### django 内置的认证组件含有
+
+> * 其他的内置组件都是基于我们的 **BaseAuthentication** 进行认证操作的
+>   * **BasicAuthentication**
+>   * **SessionAuthentication**
+>   * **TokenAuthentication**
+>   * **RemoteUserAuthentication**
+
+
+
+## drf 权限组件
+
+> * 其使用和认证组件一摸一样的
+> * 内部的设计思想的话和我们的认证组件的设计思想一摸一样的，没有很大的区别所在的
+> * 也是可以实现的是设置我们的权限的校验的
+
+
+
+> * 多个权限组件之间的默认关系
+>   * 只有当所有的权限组件为 **True** 的时候才能保证某个用户具备某种权限，就是互相影响的
+>   * 但是开发的时候我们是需要进行的是我们的不使用默认情况的
+
+
+
+> * 权限组件和我们的认证组件是一样的道理都是具备我们的全局使用和局部使用
+> * 全局使用就是在我们的配置文件 settings.py 中进行使用的
+> * 局部使用就是在我们的视图函数中进行书写我们的静态属性，从而实现局部的校验即可
+
+
+
+> * 同时我们还是可以实现自定义我们的没有权限的信息返回的
+> * 这个时候需要进行的就是我们的在全局中进行配置我们的 **message** 信息即可
+
+
+
+> * 对于我们的权限管理组件的话，djangorestframework 的底层实现只要是一个不通过，直接就不通过，直接 pass 了
+> * 所以说我们这个时候为了满足其他的条件需求，这个时候就需要进行的是对方法进行重写即可
+> * **check_permission** 方法的重写，从而实现我们的源码的扩展修改流程即可
+
+
+
+## drf 限流组件
+
+* 该功能就是实现我们的限制某个接口不被用户访问的过于频繁了
+  * 这个时候就可以通过我们的限流实现该功能，相当于前端的节流吧
+  * 实现该功能的实质就是通过寻找唯一标识实现的限制
+* 实现限流的基本流程就是：
+  * 首先先确定我们的一个条件  10min
+  * 然后获取当前时间  16：45
+  * 当前时间 - 时间间隔 = 计数开始时间  16: 35
+  * 计算时间间隔内的访问次数
+    * 超过： 请求超时
+    * 未过： 继续可以请求
+
+
+
+## 源码分析
+
+**首先需要注意的是我们的源码是分析的是我们的 APIView 视图的源码**
+
+### 内部 initial 函数的源码
+
+```python
+    def initial(self, request, *args, **kwargs):
+        """
+        Runs anything that needs to occur prior to calling the method handler.
+        """
+        self.format_kwarg = self.get_format_suffix(**kwargs)
+
+        # Perform content negotiation and store the accepted info on the request
+        neg = self.perform_content_negotiation(request)
+        request.accepted_renderer, request.accepted_media_type = neg
+
+        # Determine the API version, if versioning is in use.
+        version, scheme = self.determine_version(request, *args, **kwargs)
+        request.version, request.versioning_scheme = version, scheme
+
+        # Ensure that the incoming request is permitted
+        self.perform_authentication(request)
+        self.check_permissions(request)
+        self.check_throttles(request)
+```
+
+> * 对于上面的源码的话我们比较重要的分析就是关于最后的三个语句的
+>
+> * 最后的三个语句就实现了我们的认证组件，权限组件以及节流组件的校验流程
+>
+>   * 首先执行的是我们的认证组件的对视图的校验流程
+>   * 然后等待认证组件的校验通过后，就直接进行我们的权限校验过程
+>   * 最后就是实现的是我们的节流校验流程了
+>
+> * 在我们的认证流程中，我们的实现的话就是肯定是我们的认证组件通过后才是我们的权限校验流程
+>
+>   * 就可以不用考虑当认证全部失败后的情况了
+>
+> * ```python
+>   def initial(self, request, *args, **kwargs):
+>       self.perform_authentication(request)
+>       self.check_permissions(request)
+>       self.check_throttles(request)
+>   ```
+
+### 内部 dispatch 函数的实现
+
+```python
+    def dispatch(self, request, *args, **kwargs):
+        """
+        `.dispatch()` is pretty much the same as Django's regular dispatch,
+        but with extra hooks for startup, finalize, and exception handling.
+        """
+        self.args = args
+        self.kwargs = kwargs
+        request = self.initialize_request(request, *args, **kwargs)
+        self.request = request
+        self.headers = self.default_response_headers  # deprecate?
+
+        try:
+            self.initial(request, *args, **kwargs)
+
+            # Get the appropriate handler method
+            if request.method.lower() in self.http_method_names:
+                handler = getattr(self, request.method.lower(),
+                                  self.http_method_not_allowed)
+            else:
+                handler = self.http_method_not_allowed
+
+            response = handler(request, *args, **kwargs)
+
+        except Exception as exc:
+            response = self.handle_exception(exc)
+
+        self.response = self.finalize_response(request, response, *args, **kwargs)
+        return self.response
+```
+

@@ -128,5 +128,8 @@ REST_FRAMEWORK = {
         "_authentication.base_authentication.UrlAuthentication",
         "_authentication.base_authentication.HeaderAuthentication",
         "_authentication.base_authentication.NoneAuthentication",
+    ],
+    "DEFAULT_PERMISSION_CLASSES": [
+        "_permission.base_permission.MyPermission"
     ]
 }
