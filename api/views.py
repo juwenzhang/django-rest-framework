@@ -6,6 +6,7 @@ from rest_framework.response import Response
 from api import models
 from _constant import comm
 from api_view_temp.ProAPIView import ProAPIView
+from _throttle.base_throttle import MyThrottle
 # from _permission.base_permission import MyPermission
 # from _authentication.base_authentication import Base_Authentication
 
@@ -22,6 +23,7 @@ class LoginView(ProAPIView):
     # 通过定义静态变量的形式实现用户校验
     authentication_classes = []
     permission_classes = []
+    throttle_classes = [MyThrottle, ]
     def get(self, request: Request, *args: tuple, **kwargs: dict) -> Response:
         return Response({
             "message": "欢迎来到 django-rest-framework project`s login page"

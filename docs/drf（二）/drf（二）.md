@@ -404,6 +404,40 @@ class DefaultView(APIView):
 
 
 
+> * 在我们的权限组件中，如果我们实现返回的是 True ，表示的就是实现了最终的有权限
+> * 如果权限组件返回的是 False ，就是实现的是我们的当前用户没有权限
+
+
+
+> * 但是在我们的拥有多个权限认证组件的时候，我们就需要进行的是我们的对视图源码进行重写
+> * 因为源码的话实现的是我们的只要含有一个权限组件失败了，最终的效果就是直接全部权限没有了
+
+
+
+```python
+from rest_framework.views import APIView
+
+class ProAPIView(APIView):
+    def check_permissions(self, request):
+        not_have_permission_objects = []
+        for _permission in self.get_permissions():
+            if _permission.has_permission(request, self):
+                return
+            else:
+                not_have_permission_objects.append(_permission)
+
+        if len(not_have_permission_objects) > 0:
+            self.permission_denied(
+                request,
+                message=getattr(not_have_permission_objects[0], "message", None),
+                code=getattr(not_have_permission_objects[0], "code", None)
+            )
+```
+
+
+
+
+
 ## drf 限流组件
 
 * 该功能就是实现我们的限制某个接口不被用户访问的过于频繁了

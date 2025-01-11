@@ -8,9 +8,11 @@ class ProAPIView(APIView):
                 return
             else:
                 not_have_permission_objects.append(_permission)
-        else:
+
+        if len(not_have_permission_objects) > 0:
             self.permission_denied(
                 request,
                 message=getattr(not_have_permission_objects[0], "message", None),
                 code=getattr(not_have_permission_objects[0], "code", None)
             )
+
