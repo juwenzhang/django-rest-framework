@@ -3,10 +3,13 @@ from django.db import DatabaseError
 from django.http import QueryDict
 from rest_framework.request import Request
 from rest_framework.response import Response
+from rest_framework.versioning import QueryParameterVersioning
+from rest_framework.parsers import JSONParser
+from rest_framework.negotiation import DefaultContentNegotiation
 from api import models
 from _constant import comm
 from api_view_temp.ProAPIView import ProAPIView
-from _throttle.base_throttle import MyThrottle
+from _throttle.base_throttle import IpThrottle, UserThrottle
 # from _permission.base_permission import MyPermission
 # from _authentication.base_authentication import Base_Authentication
 
@@ -23,7 +26,11 @@ class LoginView(ProAPIView):
     # 通过定义静态变量的形式实现用户校验
     authentication_classes = []
     permission_classes = []
-    throttle_classes = [MyThrottle, ]
+    throttle_classes = [UserThrottle, IpThrottle]
+    versioning_class = QueryParameterVersioning
+    parser_classes = [JSONParser, ]
+    content_negotiation_class = DefaultContentNegotiation
+
     def get(self, request: Request, *args: tuple, **kwargs: dict) -> Response:
         return Response({
             "message": "欢迎来到 django-rest-framework project`s login page"
@@ -69,7 +76,8 @@ class LoginView(ProAPIView):
             return Response({
                 "code": True,
                 "msg": "登录成功",
-                "token": token
+                "token": token,
+                "request_version": request.version
             })
         except DatabaseError:
             return Response(comm.LOGIN_DATABASE_ERROR_MSG)

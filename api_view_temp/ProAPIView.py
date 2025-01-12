@@ -15,4 +15,3 @@ class ProAPIView(APIView):
                 message=getattr(not_have_permission_objects[0], "message", None),
                 code=getattr(not_have_permission_objects[0], "code", None)
             )
-

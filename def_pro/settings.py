@@ -136,12 +136,40 @@ STATIC_URL = '/static/'
 
 REST_FRAMEWORK = {
     # "UNAUTHENTICATED_USER": None,
+
+    # authentication setting
     "DEFAULT_AUTHENTICATION_CLASSES": [
         "_authentication.base_authentication.UrlAuthentication",
         "_authentication.base_authentication.HeaderAuthentication",
         "_authentication.base_authentication.NoneAuthentication",
     ],
+
+    # permission setting
     "DEFAULT_PERMISSION_CLASSES": [
         "_permission.base_permission.MyPermission"
-    ]
+    ],
+
+    # throttle setting
+    "DEFAULT_THROTTLE_CLASSES": [
+
+    ],
+    "DEFAULT_THROTTLE_RATES": {
+        "base-throttle" : "5/m",
+        "user-throttle": "5/m",
+        "ip-throttle": "3/h",
+    },
+
+    # version setting
+    "VERSION_PARAM": "version",  # 配置 url 中的参数值 version=1
+    "DEFAULT_VERSION": "web",
+    "ALLOWED_VERSIONS": [
+        "web"
+        "web-vue",
+        "web-react",
+        "web-mini",
+        "web-electron",
+        "web-native",
+        "web-solid",
+        "web-angular"
+    ],
 }
