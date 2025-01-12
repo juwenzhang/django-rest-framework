@@ -450,6 +450,44 @@ class ProAPIView(APIView):
   * 计算时间间隔内的访问次数
     * 超过： 请求超时
     * 未过： 继续可以请求
+* 限流实现的过程就是：
+  * 首先先实现编写我们的限流组件
+  * 安装 django-redis 
+  * 配置 django-redis
+  * 启动本地的 redis
+  * 最后就是在我们需要进行使用的视图类中进行使用
+* redis 可以用来存储的信息含有
+  * 限流存储
+  * 验证码存储
+  * **token** 存储
+
+```python
+from rest_framework.throttling import SimpleRateThrottle
+from django.core.cache import cache as default_cache
+
+class MyThrottle(SimpleRateThrottle):
+    scope = "my-throttle"
+    THROTTLE_RATES = {"my-throttle": "5/min"}  # 访问频率
+    cache = default_cache
+
+    # 实现获取节流认证的唯一标识
+    def get_cache_key(self, request, view):
+        if request.user:
+            ident = request.user.pk  # 注意在我们的节流认证前默认已经执行过了认证校验和权限校验了的
+        else:
+            ident = self.get_ident(request)  # 获取的是用户 ip 地址
+        return self.cache_format % {"scope": self.scope, "ident": ident}
+
+    def wait(self):
+        return 60
+
+    def get_throttle_message(self, request):
+        return "你的请求过于频繁，请在 %d 秒后重试" % self.wait()
+```
+
+### throttle 限流源码
+
+* 首先我们是否实现限流和源码的 **allow_request** 是有关的
 
 
 
@@ -532,3 +570,57 @@ class ProAPIView(APIView):
         return self.response
 ```
 
+
+
+> * 总结： 我们的三大重要的组件就是我们的
+> * 下面的三大组件都是来自于我们的 **rest_framework** 中的，直接从该部分进行引入即可
+>   * 认证组件： 这是我们的每一个视图首先需要的一个校验组件
+>     * **authentication**
+>     * 该组件就是为了实现我们的为视图添加对 **token** 必须的校验
+>     * 客户端给我们后端传递数据的时候，我们实现的是就是： 
+>       * 通过查询字符串 **query_params** 进行传递 **token** 给我们的后端服务器
+>       * 通过请求体传递查询字符串： 通过 **formdata** 的形式传递 **token** 的数据
+>         * **content-type** 类型为
+>           * **multipart/form-data**
+>           * **application/x-www-form-urlencoded**
+>       * 通过请求头的 **Authorization** 来传递我们的 **token** 的方式
+>     * 还部分校验成功后就可以传递两个数据给每个视图函数进行获取使用校验了
+>       * **request,user** 和 **token**
+>   * 权限组件
+>     * **permission**
+>     * 就是权限组件，就是我们的有一些视图的话需要用户拥有某种权限才可以访问的
+>     * 通过权限组件的返回值的正确性来实现判断是否拥有权限的 **Boolean**
+>     * 该部分需要注意的是：
+>       * 由于源码的处理多个权限的逻辑的不满足实际需求
+>       * 我们需要对 **APIView** 中的 **check_permissions** 方法进行重写
+>   * 限流组件
+>     * **throttle**
+>     * 限流组件就是实现的是设置在单位时间内我们的访问视图频率的限制
+>     * 超过了限制，用于就会不得不停止操作了
+>     * 通过节流组件的返回值的正确性来实现的判断 **Boolean**
+
+
+
+## 拓展知识面
+
+* 我们在开发中常见的登录校验方式含有
+  * 第一种就是通过 **session-cookie** 机制实现的登录校验
+    * 该方式用于我们的前后端不分离的开发模式中
+    * 前后端不分离的开发模式中含有我们的 **csrf-token** 的跨域请求限制
+    * 前后端不分离的开发模式中后端通过其内置的模板渲染引擎，实现最终的将 token 伴随着页面返回给客户端
+    * 但是这样的开发就有一个缺点就是
+      * 会有跨域请求限制
+      * 所有压力全部在服务端
+  * 第二种就是现在比较常用的 **JSON WEB TOKEN （JWT）**机制
+    * 常用于现在的前后端分离的开发的模式中
+    * 这个时候通过用户的登录，服务端将 token 返回给前端
+    * 前端通过 storage 缓存进行存储，每次向服务器 api 接口发送请求的时候携带 token 信息即可
+    * 这样就拥有了访问 api 的权限了
+  * 第三种就是 **oauth** 第三方登录校验
+    * 常见的就是我们的 微信登录，QQ登录，Github登录，飞书登录 等等
+    * 也就是通过第三方平台实现的登录
+  * 第三种就是我们的 **SSO** 登录
+    * 也就是我们的单点系统
+    * 京东就是使用的单点登录
+    * 微信小程序和微信公众号之间的登录关系
+    * 通俗易懂的描述就是： **一端登录多端就实现了登录**
