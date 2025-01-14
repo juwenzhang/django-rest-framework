@@ -70,5 +70,5 @@
 
 ## drf 序列化器
 
-
-
+* 序列化就是实现的是我们的从数据库获取得到的数据转化为 json 数据进行传递的
+* **from rest_framework import serializers**

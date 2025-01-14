@@ -76,3 +76,9 @@ PERMISSION_NOT_PASS_MSG: dict = {
     "status": False,
     "msg": "该用户没有权限访问~~~~"
 }
+
+# ==================================================
+REGISTER_HAVE_META_ERROR: dict = {
+    "statue": False,
+    "msg": "用户名已经存在"
+}
