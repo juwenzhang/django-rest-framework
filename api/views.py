@@ -1,6 +1,6 @@
 import uuid
 from django.db import DatabaseError
-from django.http import QueryDict, HttpRequest
+from django.http import QueryDict
 from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.versioning import QueryParameterVersioning
@@ -8,9 +8,10 @@ from rest_framework.parsers import JSONParser
 from rest_framework.negotiation import DefaultContentNegotiation
 from api import models
 from api.serilizer import UserInfoSerializer
+from api_view_temp.ProAPIView import ProAPIView
+from api.serilizer.UserInfoSerializer import UserInfoSerializerPost
 from _constant import comm
 from _throttle.base_throttle import IpThrottle, UserThrottle
-from api_view_temp.ProAPIView import ProAPIView
 # from _permission.base_permission import MyPermission
 # from _authentication.base_authentication import Base_Authentication
 
@@ -43,19 +44,19 @@ class LoginView(ProAPIView):
         # print(request.data)
         username: str = request.data.get("username")
         password: str = request.data.get("password")
-        data = request.data
+        data: dict = request.data
         # 开始实现数据库用户校验
         if not username or not password:
             username: str = request.query_params.get("username")
             password: str = request.query_params.get("password")
-            data = request.query_params
+            data: dict = request.query_params
 
         # if not username or not password:
         #     return Response(comm.LOGIN_REQUEST_ERROR_MSG)
-        ser = UserInfoSerializer.UserInfoSerializerPost(data=data)
+        ser: UserInfoSerializerPost = UserInfoSerializer.UserInfoSerializerPost(data=data)
         if ser.is_valid():
             try:
-                user_obj: QueryDict = (models.UserInfo.objects.filter(
+                user_obj = (models.UserInfo.objects.filter(
                     username=username,
                     password=password).
                 first())
@@ -96,42 +97,34 @@ class RegisterView(ProAPIView):
     parser_classes = [JSONParser, ]
     content_negotiation_class = DefaultContentNegotiation
 
-    def post(self, request):
+    def post(self, request: Request, *args: tuple, **kwargs: dict) -> Response:
         username: str = request.query_params.get("username")
         password: str = request.query_params.get("password")
-        data = request.query_params
+        data: dict = request.query_params
         if not username or not password or not data:
             username: str = request.data.get("username")
             password: str = request.data.get("password")
-            data = request.data
+            data: dict = request.data
 
         # if not username or not password:
         #     return Response(comm.LOGIN_REQUEST_ERROR_MSG)
         # 开始实现校验用户名是否存在
-        ser = UserInfoSerializer.UserInfoSerializerPost(data=data)
+        ser: UserInfoSerializerPost = UserInfoSerializer.UserInfoSerializerPost(data=data)
         if ser.is_valid():
             print(ser.validated_data)
             try:
                 user_obj = models.UserInfo.objects.filter(username=username).first()
                 if user_obj:
-                    return Response(comm.REGISTER_HAVE_META_ERROR)
+                    return Response(comm.REGISTER_USERNAME_ERROR_MSG)
 
                 (models.UserInfo.objects.create(
                     username=username,
                     password=password).
                 save())
 
-                return Response({
-                    "status": True,
-                    "msg": "注册成功",
-                    "redirect": "/login"
-                })
+                return Response(comm.REGISTER_SUCCESS_MSG)
             except DatabaseError:
-                return Response({
-                    "code": 500,
-                    "status": True,
-                    "msg": "服务器内部出错"
-                })
+                return Response(comm.REGISTER_DATABASE_ERROR_MSG)
         else:
             return Response(ser.errors)
 
@@ -139,16 +132,17 @@ class DetailView(ProAPIView):
     permission_classes = []
     throttle_classes = []
     versioning_class = QueryParameterVersioning
-    def get(self, request):
+    def get(self, request: Request, *args: tuple, **kwargs: dict) -> Response:
         try:
             # user_obj = (models.UserInfo.objects.filter(
             #     username=request.user.username)
             # .first())
             user_objs = models.UserInfo.objects.all()
-            ser = UserInfoSerializer.UserInfoSerializerGet(
+            ser: UserInfoSerializer.UserInfoSerializerGet = (
+                UserInfoSerializer.UserInfoSerializerGet(
                 instance=user_objs,
                 many=True
-            )
+            ))
             # print(ser.data)
             return Response({
                 "status": True,
@@ -182,7 +176,7 @@ class OrderView(ProAPIView):
     # authentication_classes = [Base_Authentication]
     # permission_classes = [MyPermission, ]
     def get(self, request: Request, *args: tuple, **kwargs: dict) -> Response:
-        print(request.user.username, request.auth)
+        # print(request.user.username, request.auth)
         return Response({
             "message": "欢迎来到 django-rest-framework project`s order page",
             "username": f"当前用户名称: {request.user.username}",

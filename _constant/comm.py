@@ -39,6 +39,18 @@ REGISTER_MOBILE_ERROR_MSG: dict = {
     "msg": "电话号码重复注册"
 }
 
+REGISTER_DATABASE_ERROR_MSG: dict = {
+    "code": 500,
+    "status": False,
+    "msg": "服务器内部错误"
+}
+
+REGISTER_SUCCESS_MSG: dict = {
+    "status": True,
+    "msg": "注册成功",
+    "redirect": "/login"
+}
+
 # ==================================================
 VIEW_NOT_TOKEN_ERROR_MSG: dict = {
     "status": False,
@@ -78,7 +90,3 @@ PERMISSION_NOT_PASS_MSG: dict = {
 }
 
 # ==================================================
-REGISTER_HAVE_META_ERROR: dict = {
-    "statue": False,
-    "msg": "用户名已经存在"
-}
