@@ -1,5 +1,5 @@
 from uuid import uuid4
-from rest_framework import serializers
+from rest_framework import serializers, exceptions
 from api import models
 
 
@@ -24,7 +24,33 @@ class UserInfoSerializerGet(serializers.ModelSerializer):
     def get_other_data(self, obj):
         return f"other_data-{uuid4()}"
 
+
 # post 请求校验序列化器校验
 class UserInfoSerializerPost(serializers.Serializer):
     username = serializers.CharField(required=True)
     password = serializers.CharField(required=True)
+
+    def validate_username(self, value):
+        if len(value) < 6 or len(value) > 20:
+            raise exceptions.ValidationError("用户名不能超过6位或者不能超过20位~~~~")
+        return value
+
+    def validate_password(self, value):
+        length = len(value)
+        if length < 6 or length > 32:
+            raise exceptions.ValidationError("密码不能超过6位或者不能超过20位~~~~")
+
+        if 6 <= length < 10:
+            return "密码不安全"
+
+        if 10 <= length < 20:
+            return "密码中等"
+
+        if 20 <= length < 25:
+            return "密码安全"
+
+        if 25 <= length <= 32:
+            return "密码灰常安全"
+
+    def validate(self, attrs):
+        return attrs

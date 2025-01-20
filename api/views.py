@@ -1,6 +1,5 @@
 import uuid
 from django.db import DatabaseError
-from django.http import QueryDict
 from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.versioning import QueryParameterVersioning
